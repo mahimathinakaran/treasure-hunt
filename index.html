@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Treasure Hunt</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f6faf8; margin: 0; }
+        .container {
+            width: 100%; max-width: 430px; margin: 48px auto; background: #fff;
+            padding: 28px 32px 32px 32px; border-radius: 12px; box-shadow: 0 1px 8px rgba(60,60,60,0.13);
+        }
+        h2 { text-align: center; margin-bottom: 18px; }
+        label { font-weight: bold; display: block; margin-top: 12px; }
+        input, button {
+            margin-top: 6px; margin-bottom: 14px; width: 100%; padding: 10px; font-size: 1em; border-radius: 5px; border: 1px solid #bbb;
+        }
+        button {
+            background: #32b37c; color: #fff; border: none; font-weight: bold; cursor: pointer; letter-spacing: 1px; transition: background 0.2s;
+        }
+        button:hover { background: #239c6a; }
+        .clue-card {
+            margin-top: 24px; background: #e0fbe6; border-left: 5px solid #32b37c;
+            padding: 18px 19px; border-radius: 9px; font-size: 1.11em;
+            box-shadow: 0 0 4px #ddd;
+        }
+        #errorMsg { color: #e74c3c; margin-bottom: 10px; font-weight: bold; }
+        #progressMsg { font-weight: bold; margin-top: 16px; min-height: 24px; }
+        #logoutBtn { margin-top: 25px; padding: 9px 0; background: #e95050; border: none; border-radius: 5px; color: #fff; font-weight: bold;}
+        #logoutBtn:hover { background: #c23939; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Bible Treasure Hunt</h2>
+    <div id="loginBox">
+        <label for="teamId">Team Number (1-20):</label>
+        <input type="number" id="teamId" min="1" max="20" required>
+        <label for="teamPwd">Password:</label>
+        <input type="password" id="teamPwd" required>
+        <button onclick="login()">Login</button>
+        <div id="errorMsg"></div>
+    </div>
+    <div id="mainBox" style="display:none;">
+        <p>Welcome, <b>Team <span id="currentTeam"></span></b>! | <b>Story:</b> <span id="currentStory"></span></p>
+        <div><b>Set: </b><span id="currentSet"></span> &nbsp; | &nbsp; <b>Clue #: </b><span id="currentClueNo"></span>/12</div>
+        <div class="clue-card" id="clueDisplay"></div>
+        <label for="location">Enter your current location:</label>
+        <input type="text" id="location" required autocomplete="off" onkeydown="if(event.key==='Enter')submitLocation()">
+        <button onclick="submitLocation()">Submit Location</button>
+        <div id="progressMsg"></div>
+        <button id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
+    </div>
+</div>
+
+<script src="clues.js"></script>
+<script src="teams.js"></script>
+<script>
+let teamId = null;
+let teamObj = null;
+
+// Helper to capitalize first letter of a string
+function cap1(str) {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function login() {
+    document.getElementById('errorMsg').innerHTML = "";
+    let id = document.getElementById('teamId').value.trim();
+    let pwd = document.getElementById('teamPwd').value.trim();
+
+    if (!id || !pwd || !teams[id]) {
+        document.getElementById('errorMsg').innerHTML = "Invalid team number or password.";
+        return;
+    }
+
+    if (teams[id].password !== pwd) {
+        document.getElementById('errorMsg').innerHTML = "Incorrect password. Try again.";
+        return;
+    }
+
+    teamId = id;
+    teamObj = teams[id];
+
+    // Show team info
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('mainBox').style.display = 'block';
+    document.getElementById('logoutBtn').style.display = 'block';
+
+    document.getElementById('currentTeam').innerText = id;
+    document.getElementById('currentStory').innerText = teamObj.story;
+    document.getElementById('currentSet').innerText = teamObj.set;
+
+    showClue();
+}
+
+function showClue() {
+    let story = teamObj.story;
+    let set = teamObj.set;
+    let index = teamObj.progressIndex;
+    let clues = cluesDB[story][set];
+
+    document.getElementById('currentClueNo').innerText = (index < 12) ? (index + 1) : '12';
+    if (!clues || index >= clues.length) {
+        document.getElementById('clueDisplay').innerHTML = "<b>You've completed all clues! Please contact your event coordinator.</b>";
+        document.getElementById('progressMsg').innerHTML = "";
+        document.getElementById('location').style.display = 'none';
+        return;
+    }
+    document.getElementById('clueDisplay').innerHTML = `<b>Clue ${index+1}:</b><br>${clues[index].clue}`;
+    document.getElementById('progressMsg').innerHTML = "";
+    document.getElementById('location').value = "";
+    document.getElementById('location').style.display = '';
+}
+
+function submitLocation() {
+    let inputLoc = document.getElementById('location').value.trim().toLowerCase();
+    if (!teamObj) return;
+
+    let story = teamObj.story;
+    let set = teamObj.set;
+    let index = teamObj.progressIndex;
+    let clues = cluesDB[story][set];
+
+    if (!clues || index >= clues.length) return;
+
+    let expectedLoc = clues[index].location.toLowerCase();
+    if (inputLoc === expectedLoc) {
+        teamObj.progressIndex++;
+        document.getElementById('progressMsg').innerHTML = "<span style='color:#27ae60;'>Correct! Moving to your next clue...</span>";
+        setTimeout(() => { showClue(); }, 1100);
+    } else {
+        document.getElementById('progressMsg').innerHTML = "<span style='color:#e74c3c;'>Incorrect location. Try again!</span>";
+    }
+}
+
+function logout() {
+    teamId = null; teamObj = null;
+    document.getElementById('mainBox').style.display = 'none';
+    document.getElementById('loginBox').style.display = 'block';
+    document.getElementById('teamId').value = '';
+    document.getElementById('teamPwd').value = '';
+    document.getElementById('errorMsg').innerHTML = '';
+}
+
+</script>
+</body>
+</html>
