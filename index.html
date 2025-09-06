@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>Treasure Hunt</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f6faf8; margin: 0; }
@@ -44,7 +44,7 @@
         <p>Welcome, <b>Team <span id="currentTeam"></span></b>! | <b>Story:</b> <span id="currentStory"></span></p>
         <div><b>Set: </b><span id="currentSet"></span> &nbsp; | &nbsp; <b>Clue #: </b><span id="currentClueNo"></span>/12</div>
         <div class="clue-card" id="clueDisplay"></div>
-        <label for="location">Enter your current location:</label>
+        <label for="location">Enter your qr code:</label>
         <input type="text" id="location" required autocomplete="off" onkeydown="if(event.key==='Enter')submitLocation()">
         <button onclick="submitLocation()">Submit Location</button>
         <div id="progressMsg"></div>
@@ -58,10 +58,14 @@
 let teamId = null;
 let teamObj = null;
 
-// Helper to capitalize first letter of a string
-function cap1(str) {
-    if (!str) return "";
-    return str.charAt(0).toUpperCase() + str.slice(1);
+// Shuffle helper to create a random order of clues per team
+function shuffleArray(array) {
+    let arr = array.slice();
+    for (let i = arr.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
 }
 
 function login() {
@@ -82,11 +86,16 @@ function login() {
     teamId = id;
     teamObj = teams[id];
 
-    // Show team info
+    // Initialize clueOrder if missing for this team (on first login)
+    if (!teamObj.clueOrder) {
+        const clues = cluesDB[teamObj.story][teamObj.set];
+        teamObj.clueOrder = shuffleArray([...Array(clues.length).keys()]); // shuffled clue indices array
+        teamObj.progressIndex = 0;
+    }
+
     document.getElementById('loginBox').style.display = 'none';
     document.getElementById('mainBox').style.display = 'block';
     document.getElementById('logoutBtn').style.display = 'block';
-
     document.getElementById('currentTeam').innerText = id;
     document.getElementById('currentStory').innerText = teamObj.story;
     document.getElementById('currentSet').innerText = teamObj.set;
@@ -97,17 +106,21 @@ function login() {
 function showClue() {
     let story = teamObj.story;
     let set = teamObj.set;
-    let index = teamObj.progressIndex;
+    let progress = teamObj.progressIndex;
     let clues = cluesDB[story][set];
+    let clueOrder = teamObj.clueOrder;
 
-    document.getElementById('currentClueNo').innerText = (index < 12) ? (index + 1) : '12';
-    if (!clues || index >= clues.length) {
+    document.getElementById('currentClueNo').innerText = (progress < clues.length) ? (progress + 1) : clues.length;
+
+    if (!clues || progress >= clues.length) {
         document.getElementById('clueDisplay').innerHTML = "<b>You've completed all clues! Please contact your event coordinator.</b>";
         document.getElementById('progressMsg').innerHTML = "";
         document.getElementById('location').style.display = 'none';
         return;
     }
-    document.getElementById('clueDisplay').innerHTML = `<b>Clue ${index+1}:</b><br>${clues[index].clue}`;
+
+    const clueIndex = clueOrder[progress];
+    document.getElementById('clueDisplay').innerHTML = `<b>Clue ${progress + 1}:</b><br>${clues[clueIndex].clue}`;
     document.getElementById('progressMsg').innerHTML = "";
     document.getElementById('location').value = "";
     document.getElementById('location').style.display = '';
@@ -119,12 +132,14 @@ function submitLocation() {
 
     let story = teamObj.story;
     let set = teamObj.set;
-    let index = teamObj.progressIndex;
+    let progress = teamObj.progressIndex;
     let clues = cluesDB[story][set];
+    let clueOrder = teamObj.clueOrder;
 
-    if (!clues || index >= clues.length) return;
+    if (!clues || progress >= clues.length) return;
 
-    let expectedLoc = clues[index].location.toLowerCase();
+    const expectedLoc = clues[clueOrder[progress]].location.toLowerCase();
+
     if (inputLoc === expectedLoc) {
         teamObj.progressIndex++;
         document.getElementById('progressMsg').innerHTML = "<span style='color:#27ae60;'>Correct! Moving to your next clue...</span>";
@@ -142,7 +157,6 @@ function logout() {
     document.getElementById('teamPwd').value = '';
     document.getElementById('errorMsg').innerHTML = '';
 }
-
 </script>
 </body>
 </html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clue Verification</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    label, input { display: block; margin: 8px 0; }
+    input[type="text"], input[type="password"] { padding: 8px; width: 250px; }
+    button { padding: 10px 20px; margin-top: 10px; }
+    .result { margin-top: 20px; font-weight: bold; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+
+  <h2>Enter Team Number and Password</h2>
+  <form id="teamForm">
+    <label for="teamNumber">Team Number (1-20):</label>
+    <input type="text" id="teamNumber" required pattern="\d+" />
+
+    <label for="password">Password:</label>
+    <input type="password" id="password" required />
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <div class="result" id="result"></div>
+
+  <script>
+    // Store team credentials
+    const teams = {
+      1: "48293", 2: "31579", 3: "62840", 4: "94027",
+      5: "80924", 6: "42635", 7: "71308", 8: "29401",
+      9: "48127", 10: "93214", 11: "10569", 12: "67830",
+      13: "83056", 14: "29487", 15: "56290", 16: "71942",
+      17: "58130", 18: "90316", 19: "24785", 20: "67509"
+    };
+
+    // Location codes for team groups - updated set 
+    const locationCodes = {
+      group1: "47026",  // Teams 1-4
+      group2: "20795",  // Teams 5-8
+      group3: "62793",  // Teams 9-12
+      group4: "48507",  // Teams 13-16
+      group5: "47385"   // Teams 17-20
+    };
+
+    // Determine location code based on team number
+    function getLocationCode(teamNo) {
+      if (teamNo >= 1 && teamNo <= 4) return locationCodes.group1;
+      if (teamNo >= 5 && teamNo <= 8) return locationCodes.group2;
+      if (teamNo >= 9 && teamNo <= 12) return locationCodes.group3;
+      if (teamNo >= 13 && teamNo <= 16) return locationCodes.group4;
+      if (teamNo >= 17 && teamNo <= 20) return locationCodes.group5;
+      return null;
+    }
+
+    document.getElementById("teamForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const teamNumber = parseInt(document.getElementById("teamNumber").value.trim(), 10);
+      const password = document.getElementById("password").value.trim();
+      const resultDiv = document.getElementById("result");
+
+      if (!teams[teamNumber]) {
+        resultDiv.innerHTML = "<span class='error'>Invalid team number.</span>";
+        return;
+      }
+
+      if (teams[teamNumber] !== password) {
+        resultDiv.innerHTML = "<span class='error'>Incorrect password.</span>";
+        return;
+      }
+
+      const location = getLocationCode(teamNumber);
+      if (!location) {
+        resultDiv.innerHTML = "<span class='error'>No location code found for your team.</span>";
+        return;
+      }
+
+      resultDiv.innerHTML = `Success! Your location code is: <strong>${location}</strong>`;
+    });
+  </script>
+
+</body>
+</html>
